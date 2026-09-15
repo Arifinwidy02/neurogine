@@ -88,7 +88,7 @@ function ProductListScreen({ navigation }: Props) {
               price={item.price}
               thumbnail={item.thumbnail}
               onPress={() =>
-                navigation.navigate('ProductDetail', { product: item })
+                navigation.navigate('ProductDetail', { productId: item.id })
               }
             />
           )}
