@@ -1,97 +1,122 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Neurogine Product Catalog
 
-# Getting Started
+Small product catalog app for Neurogine Junior Mobile Developer assessment. Built with React Native using DummyJSON API (no key required).
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Stack
 
-## Step 1: Start Metro
+- **React Native 0.87.1 / React 19.2.3 / TypeScript 6**
+- **Navigation:** `@react-navigation/native 7.4` + `native-stack 7.19`, `react-native-screens 4.28`, `react-native-gesture-handler 3.3`
+- **Safe Area:** `react-native-safe-area-context 5.5`
+- **API:** DummyJSON — `https://dummyjson.com`
+- **Test:** Jest + `@react-native/jest-preset`
+- **Package manager:** npm (`package-lock.json` only — `bun.lock` removed to avoid confusion)
+- **Node:** >= 22.11
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+## How to Run
 
 ```sh
-# Using npm
+# 1. Install JS deps
+npm install
+
+# 2. iOS only — install pods (first clone / after native dep change)
+bundle install
+bundle exec pod install
+# or: cd ios && pod install
+
+# 3. Start Metro
 npm start
 
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+# 4. Run app (new terminal)
+npm run ios
+# or
 npm run android
 
-# OR using Yarn
-yarn android
+# 5. Run tests
+npm test
+npm test -- productApi
 ```
 
-### iOS
+> Android / iOS setup: https://reactnative.dev/docs/set-up-your-environment
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## API Used
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+- List + Pagination: `GET /products?limit=20&skip=0`
+- Search: `GET /products/search?q={query}`
+- Detail: `GET /products/{id}`
 
-```sh
-bundle install
+## Features
+
+| Feature | Status |
+|---|---|
+| Product list (title, thumbnail, price) | ✅ `ProductCard` + `FlatList` |
+| Pagination via `skip` (`onEndReached`) | ✅ `useProductList` `loadMore()` |
+| Product detail (description, price, rating, images) | ✅ fetch by id + horizontal thumbs |
+| States: loading, error+retry, empty, success | ✅ full-screen + inline banner + footer |
+| Search (debounced 500ms) | ✅ server search via `/search?q=` |
+| Pull-to-refresh | ✅ `refreshing` / `onRefresh` |
+| Image placeholder / error | ✅ `ProductCard` spinner + `No Image` fallback, Detail `onError` |
+| Unit test | ✅ `__tests__/productApi.test.ts` for `getProducts` |
+
+## Architecture Decisions
+
+**Layers (min 2 required — I used 3):**
+- `data` — `src/services/productApi.ts` (`getProducts`, `searchProducts`, `getProductDetail`) — pure fetch, no UI.
+- `business` — `src/hooks/useProductList`, `useProductDetail`, `useDebounce` — state, pagination, debounce, `requestId` to avoid race condition.
+- `presentation` — `src/screens/*`, `src/components/ProductCard`, `src/navigation/types`
+
+Why not put fetch inside screen? So API can be swapped/mocked and tested without touching UI. Example: unit test mocks `fetch` for `getProducts` only.
+
+**Search: server vs client**
+Chose **server search** (`/products/search?q=` debounced 500ms via `useDebounce`) because client-side would only filter 20 items already loaded, not 194 products on server. Pagination is disabled during `isSearchMode` — matches DummyJSON design.
+
+**Detail by id, not passing object**
+Spec says `GET /products/{id}`. I navigate with `productId` and fetch again in `useProductDetail` instead of passing whole object — closer to real deep-link and handles stale data.
+
+**States visually distinguished**
+- `initialLoading` → full screen spinner
+- `error && products.length===0` → full screen + Retry
+- `error && products.length>0` → inline banner on top of list
+- `loadMoreError` → footer Retry
+- `products.length===0 && !error` → "No products found"
+
+## Folder Structure
+
+```
+src/
+  services/productApi.ts
+  hooks/useProductList.tsx, useProductDetail.tsx, useDebounce.tsx
+  screens/ProductListScreen.tsx, ProductDetailScreen.tsx
+  components/ProductCard.tsx
+  navigation/types.ts
+  types/product.ts, ProductResponse.ts, ProductCard.ts, footerFlatList.ts
+__tests__/productApi.test.ts
+App.tsx
 ```
 
-Then, and every time you update your native dependencies, run:
+## AI Usage
 
-```sh
-bundle exec pod install
-```
+Minimal, guidance/research only — core logic and architecture are my own and I can explain every line:
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+- `checklist.md` — used AI to generate feature checklist from the assignment email as personal notes.
+- `README.md` — used AI to help structure/wording; content (stack, decisions, TODOs) is my own writing.
+- Research — asked AI about `Image onError` for image error handling (fallback in `ProductCard`) — implementation with `useState` is mine.
 
-```sh
-# Using npm
-npm run ios
+## TODO / Not Finished
 
-# OR using Yarn
-yarn ios
-```
+Time-boxed ~2–3 hours as requested — left as TODO intentionally:
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+- `App.test.tsx` still needs navigation mock (currently fails in Jest due to `@react-navigation/native` ESM).
+- Search pagination — currently search returns all results without `skip`; could add `skip` support for large search results.
+- E2E test not added.
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+## Commit History
 
-## Step 3: Modify your app
+Progressive commits (not single squashed) — `git log --oneline` shows `feat: initialize navigation...` → `feat: pagination` → `feat: search` → `feat: detail` → `feat: image error + test` → `chore: lockfile`.
 
-Now that you have successfully run the app, let's make changes!
+## Walkthrough Video
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+Max 5 minutes: screen record running app → show folder structure → explain one decision (why server search). File kept locally, not committed.
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+## Time Spent
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+~3 hours total (including setup, navigation fix for `RNScreenStack`, and tests).
