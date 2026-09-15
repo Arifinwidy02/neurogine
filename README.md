@@ -46,20 +46,21 @@ npm test -- productApi
 
 ## Features
 
-| Feature | Status |
-|---|---|
-| Product list (title, thumbnail, price) | ✅ `ProductCard` + `FlatList` |
-| Pagination via `skip` (`onEndReached`) | ✅ `useProductList` `loadMore()` |
-| Product detail (description, price, rating, images) | ✅ fetch by id + horizontal thumbs |
-| States: loading, error+retry, empty, success | ✅ full-screen + inline banner + footer |
-| Search (debounced 500ms) | ✅ server search via `/search?q=` |
-| Pull-to-refresh | ✅ `refreshing` / `onRefresh` |
-| Image placeholder / error | ✅ `ProductCard` spinner + `No Image` fallback, Detail `onError` |
-| Unit test | ✅ `__tests__/productApi.test.ts` for `getProducts` |
+| Feature                                             | Status                                                           |
+| --------------------------------------------------- | ---------------------------------------------------------------- |
+| Product list (title, thumbnail, price)              | ✅ `ProductCard` + `FlatList`                                    |
+| Pagination via `skip` (`onEndReached`)              | ✅ `useProductList` `loadMore()`                                 |
+| Product detail (description, price, rating, images) | ✅ fetch by id + horizontal thumbs                               |
+| States: loading, error+retry, empty, success        | ✅ full-screen + inline banner + footer                          |
+| Search (debounced 500ms)                            | ✅ server search via `/search?q=`                                |
+| Pull-to-refresh                                     | ✅ `refreshing` / `onRefresh`                                    |
+| Image placeholder / error                           | ✅ `ProductCard` spinner + `No Image` fallback, Detail `onError` |
+| Unit test                                           | ✅ `__tests__/productApi.test.ts` for `getProducts`              |
 
 ## Architecture Decisions
 
 **Layers (min 2 required — I used 3):**
+
 - `data` — `src/services/productApi.ts` (`getProducts`, `searchProducts`, `getProductDetail`) — pure fetch, no UI.
 - `business` — `src/hooks/useProductList`, `useProductDetail`, `useDebounce` — state, pagination, debounce, `requestId` to avoid race condition.
 - `presentation` — `src/screens/*`, `src/components/ProductCard`, `src/navigation/types`
@@ -73,6 +74,7 @@ Chose **server search** (`/products/search?q=` debounced 500ms via `useDebounce`
 Spec says `GET /products/{id}`. I navigate with `productId` and fetch again in `useProductDetail` instead of passing whole object — closer to real deep-link and handles stale data.
 
 **States visually distinguished**
+
 - `initialLoading` → full screen spinner
 - `error && products.length===0` → full screen + Retry
 - `error && products.length>0` → inline banner on top of list
@@ -112,11 +114,3 @@ Time-boxed ~2–3 hours as requested — left as TODO intentionally:
 ## Commit History
 
 Progressive commits (not single squashed) — `git log --oneline` shows `feat: initialize navigation...` → `feat: pagination` → `feat: search` → `feat: detail` → `feat: image error + test` → `chore: lockfile`.
-
-## Walkthrough Video
-
-Max 5 minutes: screen record running app → show folder structure → explain one decision (why server search). File kept locally, not committed.
-
-## Time Spent
-
-~3 hours total (including setup, navigation fix for `RNScreenStack`, and tests).
