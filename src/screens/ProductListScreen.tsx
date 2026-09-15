@@ -4,6 +4,7 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -26,6 +27,9 @@ function ProductListScreen({ navigation }: Props) {
     loadMore,
     retry,
     refresh,
+    search,
+    setSearch,
+    isSearching,
   } = useProductList();
 
   if (initialLoading) {
@@ -50,6 +54,17 @@ function ProductListScreen({ navigation }: Props) {
 
   return (
     <SafeAreaView style={styles.container} edges={['bottom']}>
+      <View style={styles.searchRow}>
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search products.."
+          style={styles.searchInput}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        {isSearching && <ActivityIndicator style={styles.searchSpinner} />}
+      </View>
       {error && products.length > 0 && (
         <View style={styles.inlineError}>
           <Text style={styles.errorText}>{error}</Text>
@@ -125,15 +140,15 @@ function ListFooter({ isLoading, error, onRetry }: ListFooterProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
+  container: { flex: 1, backgroundColor: 'white' },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: '#fff',
+    backgroundColor: 'white',
   },
-  separator: { height: 1, backgroundColor: '#eee', marginLeft: 116 },
+  separator: { height: 1, backgroundColor: 'white', marginLeft: 116 },
   footer: {
     minHeight: 56,
     justifyContent: 'center',
@@ -163,20 +178,36 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
   },
   retryText: { fontWeight: '600', color: '#fff' },
-  errorText: { color: '#b42318', textAlign: 'center' },
-  subtle: { color: '#888', fontSize: 12, marginTop: 4 },
+  errorText: { color: 'red', textAlign: 'center' },
+  subtle: { color: 'grey', fontSize: 12, marginTop: 4 },
   emptyList: { flexGrow: 1 },
   inlineError: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 8,
-    backgroundColor: '#fdecea',
+    backgroundColor: 'white',
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 8,
     gap: 8,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    margin: 16,
+    marginBottom: 4,
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: 'grey',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: 'white',
+  },
+  searchSpinner: { marginLeft: 8 },
 });
 
 export default ProductListScreen;

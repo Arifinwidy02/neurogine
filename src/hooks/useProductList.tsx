@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Product } from '../types/product';
-import { getProducts } from '../services/productApi';
+import { getProducts, searchProducts } from '../services/productApi';
+import { useDebounce } from './useDebounce';
 
 const LIMIT = 20;
 
@@ -8,15 +9,19 @@ export function useProductList() {
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
   const [skip, setSkip] = useState(0);
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 500);
 
   const [initialLoading, setInitialLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
   const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
 
   const requestId = useRef(0);
+  const isSearchMode = debouncedSearch.trim().length > 0;
 
   async function loadData(nextSkip: number, append: boolean) {
     const id = ++requestId.current;
@@ -24,15 +29,22 @@ export function useProductList() {
     if (append) {
       setIsLoadingMore(true);
       setLoadMoreError(null);
+    } else if (isSearchMode) {
+      setIsSearching(true);
+      setError(null);
+    } else if (products.length === 0) {
+      setInitialLoading(true);
+      setError(null);
     } else {
-      if (products.length === 0 && !refreshing) {
-        setInitialLoading(true);
-      }
+      setIsSearching(true);
       setError(null);
     }
 
     try {
-      const res = await getProducts(nextSkip, LIMIT);
+      const res = isSearchMode
+        ? await searchProducts(debouncedSearch.trim())
+        : await getProducts(nextSkip, LIMIT);
+
       if (id !== requestId.current) return;
 
       if (append) {
@@ -41,7 +53,8 @@ export function useProductList() {
         setProducts(res.products);
       }
       setTotal(res.total);
-      setSkip(nextSkip + res.products.length);
+      setSkip(isSearchMode ? 0 : nextSkip);
+      setError(null);
     } catch (e) {
       if (id !== requestId.current) return;
       const msg = (e as Error).message || 'Something went wrong';
@@ -52,6 +65,7 @@ export function useProductList() {
       setInitialLoading(false);
       setIsLoadingMore(false);
       setRefreshing(false);
+      setIsSearching(false);
     }
   }
 
@@ -59,10 +73,17 @@ export function useProductList() {
     loadData(0, false);
   }, []);
 
+  useEffect(() => {
+    if (initialLoading) return;
+    setLoadMoreError(null);
+    loadData(0, false);
+  }, [debouncedSearch]);
+
   function loadMore() {
-    if (isLoadingMore || initialLoading) return;
+    if (isSearchMode) return;
+    if (isLoadingMore || initialLoading || isSearching) return;
     if (products.length >= total) return;
-    loadData(skip, true);
+    loadData(skip + LIMIT, true);
   }
 
   function retry() {
@@ -90,5 +111,8 @@ export function useProductList() {
     loadMore,
     retry,
     refresh,
+    search,
+    setSearch,
+    isSearching,
   };
 }

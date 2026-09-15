@@ -12,3 +12,11 @@ export async function getProducts(
   if (!response.ok) throw new Error('Failed to fetch products');
   return response.json();
 }
+
+export async function searchProducts(query: string): Promise<ProductResponse> {
+  const response = await fetch(
+    `${BASE_URL}/products/search?q=${encodeURIComponent(query)}`,
+  );
+  if (!response.ok) throw new Error('Failed to search products');
+  return response.json();
+}
